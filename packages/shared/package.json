@@ -1,0 +1,15 @@
+{
+  "name": "@nani/shared",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "matter-js": "^0.20.0"
+  },
+  "devDependencies": {
+    "@types/matter-js": "^0.19.7",
+    "typescript": "^5.7.2"
+  }
+}
