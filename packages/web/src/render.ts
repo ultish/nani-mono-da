@@ -59,8 +59,7 @@ export function drawAsteroid(
   ctx.translate(x, y);
   ctx.rotate(angle);
 
-  ctx.fillStyle = '#8a8a8a';
-  ctx.strokeStyle = '#5a5a5a';
+  ctx.strokeStyle = '#9a9a9a';
   ctx.lineWidth = 2;
   ctx.beginPath();
   const n = ROCK_JITTER.length;
@@ -73,7 +72,6 @@ export function drawAsteroid(
     else ctx.lineTo(px, py);
   }
   ctx.closePath();
-  ctx.fill();
   ctx.stroke();
 
   ctx.restore();
