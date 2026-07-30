@@ -1,8 +1,10 @@
 # nani-mono-da — multiplayer spaceship easter egg
 
 A crude multiplayer spaceship game meant to be dropped into an existing website as
-a hidden easter egg. Click the idle ship, fly it with WASD, land/takeoff with Q/E,
-shoot with Space. Everyone who has the page open shares one live session.
+a hidden easter egg. Fly with WASD, land/takeoff with Q/E, shoot with Space, once
+activated — activation itself (Konami code, a hidden button, whatever) is up to
+the host app; see "Embedding the UI" below. Everyone who has the page open shares
+one live session.
 
 ## Architecture
 
@@ -19,10 +21,13 @@ shoot with Space. Everyone who has the page open shares one live session.
 - **`packages/web`** — Vite + vanilla TypeScript, no framework. `mount()`
   (`src/mount.ts`) is the single entry point: it attaches a full-viewport
   `pointer-events:none` canvas + per-ship SVG sprites to a given container,
-  opens the WebSocket connection, and returns a cleanup function. Own-ship
-  input is predicted locally (zero-lag) and gently reconciled against the
-  server; other ships/lasers/asteroids are rendered from interpolated server
-  snapshots.
+  opens the WebSocket connection, and returns a `{ enter(), destroy() }`
+  handle. WASD/QE/Space stay inert until `enter()` is called — call it from
+  wherever your host app detects its own activation trigger (there's no
+  built-in click-to-enter; that's a decision for the embedding app to make).
+  Own-ship input is predicted locally (zero-lag) and gently reconciled
+  against the server; other ships/lasers/asteroids are rendered from
+  interpolated server snapshots.
 
 ## Local development
 
@@ -43,11 +48,22 @@ Ember's component/template system at all, it just needs *a DOM node to attach
 a canvas to*. There are two ways to bring it into the Ember app, depending on
 how much control you want.
 
-### Option A — drop-in `<script>` tag (works today, no code changes)
+### Option A — drop-in `<script>` tag (works today, minimal changes)
 
-`packages/web/src/main.ts` already calls `mount(document.body)` unconditionally
-on load — that's the dev-harness entry point, and it doubles as a ready-to-embed
-script.
+`packages/web/src/main.ts` is the dev-harness entry point — note that it calls
+`mount(document.body).enter()` (auto-entering immediately), which is a
+**dev-only convenience** so local testing doesn't require wiring up a real
+activation trigger. Don't ship that as-is; fork it into your own entry file
+before building for real embedding, e.g.:
+
+```ts
+import { mount } from './mount.js';
+
+const handle = mount(document.body, { wsUrl: 'wss://spaceship.yourdomain.com' });
+
+// Wire up whatever your real activation trigger is, then call handle.enter().
+// e.g. a Konami-code listener, a hidden button, whatever the host app wants.
+```
 
 1. Build it:
    ```bash
@@ -64,19 +80,14 @@ script.
    <script type="module" src="/spaceship.js"></script>
    ```
 4. It self-mounts to `document.body` on load and is never torn down — since
-   Ember is an SPA and this is meant to persist for the whole visit (the point
-   is "click the ship anywhere on the site"), that's the right behavior. If you
-   only include the tag on `application.hbs` it'll survive route transitions
-   automatically since the script only runs once per full page load.
-5. **Set the WebSocket URL for production.** By default `mount()` connects to
-   `ws://${location.hostname}:8080`, which only works when the game server
-   happens to share a host with the page on that exact port — never true in
-   production. Since this entry point calls `mount()` with no options, you have
-   two choices:
-   - Fork `main.ts` before building to pass `{ wsUrl: 'wss://spaceship.yourdomain.com' }`
-     explicitly (simplest — just edit the one line and rebuild).
-   - Or take Option B below, which gives you a normal call site to pass options from.
-   Use `wss://`, not `ws://`, if the Ember app is served over HTTPS — browsers
+   Ember is an SPA and this is meant to persist for the whole visit, that's the
+   right behavior. If you only include the tag on `application.hbs` it'll
+   survive route transitions automatically since the script only runs once per
+   full page load. `mount()` itself attaches the (invisible until entered)
+   overlay and opens the WebSocket connection right away regardless of when
+   `enter()` fires — if you want the whole overlay to not exist at all until
+   activation, delay calling `mount()` itself until your trigger fires instead.
+5. Use `wss://`, not `ws://`, if the Ember app is served over HTTPS — browsers
    block insecure WebSocket connections from a secure page (mixed content).
 
 ### Option B — import `mount()` directly (for route-scoped mounting / cleanup)
@@ -114,14 +125,16 @@ publishable *library*. To expose `mount()` as an importable entry point:
    the Ember app (via a published package, a `file:`/`link:` dependency, or a
    private registry — whatever the Ember app's tooling already uses for
    internal packages).
-4. Call it from an Ember modifier, keeping the returned cleanup function:
+4. Call it from an Ember modifier, keeping the returned handle:
    ```js
    import { modifier } from 'ember-modifier';
    import { mount } from '@nani/web';
 
    export default modifier((element) => {
-     const unmount = mount(element, { wsUrl: 'wss://spaceship.yourdomain.com' });
-     return unmount; // ember-modifier calls this on teardown
+     const handle = mount(element, { wsUrl: 'wss://spaceship.yourdomain.com' });
+     // Wire up your activation trigger (Konami code, etc.) and call
+     // handle.enter() from there whenever/wherever that lives.
+     return handle.destroy; // ember-modifier calls this on teardown
    });
    ```
 
@@ -158,7 +171,7 @@ and `packages/web/src/shipSprite.css.ts`.
    position/rotation logic in `update()` stays identical either way.
 4. **The collision hitbox is independent of the visual asset.** It's governed
    by `SHIP_RADIUS` in `packages/shared/src/constants.ts` (currently `20`),
-   used by both the server's physics and the client's click-to-enter hit test.
+   used by the server's physics (and the jet-stream anchor point below).
    If your new art is a noticeably different size, retune `SHIP_RADIUS` — and
    per the earlier design discussion, err slightly *smaller* than the visual
    extent (a generous-looking hitbox feels better than a strict one).

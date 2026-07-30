@@ -33,7 +33,7 @@ export class Net {
     this.send({ type: 'takeoff' });
   }
 
-  fire(): void {
-    this.send({ type: 'fire' });
+  fire(x: number, y: number, angle: number): void {
+    this.send({ type: 'fire', x, y, angle });
   }
 }

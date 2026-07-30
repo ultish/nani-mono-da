@@ -34,7 +34,7 @@ wss.on('connection', (ws) => {
         room.takeoff(id);
         break;
       case 'fire':
-        room.fire(id);
+        room.fire(id, msg.x, msg.y, msg.angle);
         break;
     }
   });

@@ -17,6 +17,11 @@ export function createLaser(
     frictionStatic: 0,
     label: `laser:${laserId}`,
   });
+  // A frictionless circle never develops rotation on its own, so body.angle
+  // would otherwise just stay at its default (0) forever regardless of
+  // travel direction — it has to be set explicitly to match, purely so the
+  // rendered ellipse lines up with where the laser is actually going.
+  Body.setAngle(body, angle);
   Body.setVelocity(body, {
     x: Math.cos(angle) * LASER_SPEED,
     y: Math.sin(angle) * LASER_SPEED,

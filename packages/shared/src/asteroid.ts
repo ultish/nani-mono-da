@@ -10,7 +10,10 @@ export function createAsteroid(id: string, size: AsteroidSize, x: number, y: num
     frictionAir: 0,
     friction: 0,
     frictionStatic: 0,
-    restitution: 0.7,
+    // Large asteroids are ~5x a ship's mass — with Matter's collision
+    // restitution taken as the max of the two bodies, a high value here
+    // sent the (much lighter) ship flying on any bump. Kept modest instead.
+    restitution: 0.4,
     label: `asteroid:${id}`,
   });
   setNani(body, { type: 'asteroid', id, size });

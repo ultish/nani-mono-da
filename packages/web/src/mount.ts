@@ -12,7 +12,15 @@ export interface MountOptions {
   wsUrl?: string;
 }
 
-export function mount(container: HTMLElement, options: MountOptions = {}): () => void {
+export interface MountHandle {
+  // Activates ship control (WASD/QE/Space) — call this from wherever you
+  // detect your own activation trigger (Konami code, a hidden button,
+  // whatever). Idempotent; safe to call more than once.
+  enter(): void;
+  destroy(): void;
+}
+
+export function mount(container: HTMLElement, options: MountOptions = {}): MountHandle {
   const wsUrl = options.wsUrl ?? `ws://${location.hostname}:8080`;
 
   const styleEl = document.createElement('style');
@@ -58,7 +66,10 @@ export function mount(container: HTMLElement, options: MountOptions = {}): () =>
       localShip?.setLanded(false);
       net.takeoff();
     },
-    () => net.fire(),
+    () => {
+      const s = localShip?.state;
+      net.fire(s?.x ?? 0, s?.y ?? 0, s?.angle ?? 0);
+    },
   );
 
   const net = new Net(wsUrl, {
@@ -78,20 +89,11 @@ export function mount(container: HTMLElement, options: MountOptions = {}): () =>
     },
   });
 
-  function handleClick(e: MouseEvent): void {
-    if (entered || !myId || !localShip) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-    const s = localShip.state;
-    if (Math.hypot(x - s.x, y - s.y) <= SHIP_RADIUS * 1.5) {
-      entered = true;
-      input.activate();
-    }
+  function enter(): void {
+    if (entered) return;
+    entered = true;
+    input.activate();
   }
-  window.addEventListener('click', handleClick);
 
   let raf = 0;
   let lastFrame = performance.now();
@@ -163,22 +165,17 @@ export function mount(container: HTMLElement, options: MountOptions = {}): () =>
         sprites.delete(id);
       }
     }
-
-    if (myId && !entered) {
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.font = '14px sans-serif';
-      ctx.fillText('click the ship to take control', 16, 24);
-    }
   }
   raf = requestAnimationFrame(frame);
 
-  return () => {
+  const destroy = () => {
     cancelAnimationFrame(raf);
-    window.removeEventListener('click', handleClick);
     input.destroy();
     for (const sprite of sprites.values()) sprite.remove();
     sprites.clear();
     canvas.remove();
     styleEl.remove();
   };
+
+  return { enter, destroy };
 }

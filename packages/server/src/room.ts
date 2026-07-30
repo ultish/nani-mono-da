@@ -57,7 +57,7 @@ function randomAsteroidVelocity(): { vx: number; vy: number } {
 
 // Single global room — everyone who opens the page joins the same session.
 export class Room {
-  private engine = Engine.create({ gravity: { x: 0, y: 0 } });
+  private engine = Engine.create({ gravity: { x: 0, y: 0 }, positionIterations: 10, velocityIterations: 8 });
   private players = new Map<string, Player>();
   private lasers = new Map<string, Laser>();
   private asteroids = new Map<string, Asteroid>();
@@ -113,7 +113,11 @@ export class Room {
     player.landed = false;
   }
 
-  fire(id: string): void {
+  // Position + angle are client-reported (see FireMessage) rather than read
+  // from the server's own stored ship state, which can differ slightly from
+  // what's rendered locally at any instant — using the server's copy made
+  // shots visibly spawn off the shooter's own rendered ship.
+  fire(id: string, x0: number, y0: number, angle: number): void {
     const player = this.players.get(id);
     if (!player || player.landed) return;
     const now = Date.now();
@@ -122,9 +126,8 @@ export class Room {
 
     const laserId = randomUUID();
     const spawnDist = SHIP_RADIUS + LASER_RADIUS + 2;
-    const angle = player.body.angle;
-    const x = player.body.position.x + Math.cos(angle) * spawnDist;
-    const y = player.body.position.y + Math.sin(angle) * spawnDist;
+    const x = x0 + Math.cos(angle) * spawnDist;
+    const y = y0 + Math.sin(angle) * spawnDist;
     const body = createLaser(laserId, id, x, y, angle);
     World.add(this.engine.world, body);
     this.lasers.set(laserId, { id: laserId, ownerId: id, body, spawnedAt: now });
