@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Fleet Co-op — dev harness</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        color: #1a2233;
+        /* Fake host app — proves the game overlay is transparent. */
+        background:
+          linear-gradient(160deg, #e8eef8 0%, #d4dde8 40%, #c5d0dc 100%);
+      }
+      .app {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 48px 24px 120px;
+      }
+      .app h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0 0 8px;
+      }
+      .app p {
+        color: #4a5568;
+        line-height: 1.55;
+      }
+      .card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px 22px;
+        margin: 20px 0;
+        box-shadow: 0 1px 3px rgba(15, 25, 40, 0.08), 0 8px 24px rgba(15, 25, 40, 0.06);
+        border: 1px solid rgba(15, 25, 40, 0.06);
+      }
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 1rem;
+      }
+      .hint {
+        position: fixed;
+        left: 16px;
+        bottom: 16px;
+        z-index: 1;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #334;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(6px);
+        padding: 10px 12px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        pointer-events: none;
+        max-width: 280px;
+      }
+      kbd {
+        font: 11px ui-monospace, monospace;
+        background: #eef2f7;
+        border: 1px solid #c5ced9;
+        border-radius: 4px;
+        padding: 1px 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <h1>Fake host application</h1>
+      <p>
+        This stands in for your real Ember UI. The fleet is a transparent overlay —
+        you should still read this copy and these cards while ships fly on top.
+        Clicks pass through the canvas (<code>pointer-events: none</code>).
+      </p>
+      <div class="card">
+        <h2>Dashboard card</h2>
+        <p style="margin:0">Normal content. If the game covers this solidly, the overlay is wrong.</p>
+      </div>
+      <div class="card">
+        <h2>Another panel</h2>
+        <p style="margin:0">Open a second tab to co-op. Ships share one server session.</p>
+      </div>
+      <div class="card">
+        <h2>Scroll me</h2>
+        <p style="margin:0">
+          The page still scrolls; the overlay stays fixed. Keyboard is captured only for game keys while entered.
+        </p>
+      </div>
+    </div>
+    <div class="hint">
+      <strong>Fleet overlay</strong><br />
+      <kbd>WASD</kbd> / arrows move · <kbd>Space</kbd> / <kbd>Z</kbd> fire<br />
+      <strong>P</strong> lasers · <strong>H</strong> life · <strong>S</strong> shield · multi-tab co-op
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
